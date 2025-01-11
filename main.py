@@ -11,6 +11,7 @@ from app.developer.routes import router as developer_router
 from app.admin_email.routes import router as admin_router
 from dotenv import dotenv_values
 from pymongo import MongoClient
+from app.script.scheduler import initialize_schedules
 
 # app.include_router(auth_router,tags=["Auth"], prefix='/auth')
 # app.include_router(product_router, tags=["Product"],prefix='/product') 
@@ -22,6 +23,11 @@ def startup_db_client():
     # app.mongodb_client = MongoClient(config["MONGODB_CONNECTION_URI"])
     app.database = app.mongodb_client["test"]
     print("Connected to the MongoDB database!")
+     # Initialize scheduler
+    print("[INFO] Initializing scheduled jobs...")
+    initialize_schedules(app.database)
+    print("[INFO] Scheduled jobs initialized successfully.")
+
 
 @app.on_event("shutdown")
 def shutdown_db_client():

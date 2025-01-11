@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException, status,File
+from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException, status,File,Query
 from typing import List
 from db import get_database
 from .crud import create_developer, get_developer, update_developer, delete_developer, list_developers
@@ -6,10 +6,11 @@ from .models import DeveloperCreate, DeveloperUpdate, DeveloperInDB, DeveloperSt
 from datetime import date
 from typing import Optional
 from utils.utils import get_current_user
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
-@router.post("/", response_description="Create a new developer", response_model=DeveloperInDB, status_code=status.HTTP_201_CREATED)
+@router.post("", response_description="Create a new developer", response_model=DeveloperInDB, status_code=status.HTTP_201_CREATED)
 def create_developer_endpoint(
     db=Depends(get_database),
     name: str = Form(...),
@@ -34,14 +35,21 @@ def create_developer_endpoint(
         maintain_script_count=maintain_script_count,
         status=status
     )
-    new_developer = create_developer(db, developer_data)
-    return new_developer
+    
+    return create_developer(db, developer_data)
 
 @router.get("/{developer_id}", response_description="Get a developer by ID", response_model=DeveloperInDB)
 def get_developer_endpoint(developer_id: str, db=Depends(get_database), user: str = Depends(get_current_user)):
     developer = get_developer(db, developer_id)
     if developer is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Developer not found")
+        return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    "status": "error",
+                    "message": "Developer not found",
+                    "data": None,
+                },
+            )
     return developer
 
 @router.put("/{developer_id}", response_description="Update a developer", response_model=DeveloperInDB)
@@ -72,17 +80,34 @@ def update_developer_endpoint(
     )
     updated_developer = update_developer(db, developer_id, developer_update)
     if updated_developer is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Developer not found or no changes made")
+        return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    "status": "error",
+                    "message": "Developer not found",
+                    "data": None,
+                },
+            )
     return updated_developer
 
 @router.delete("/{developer_id}", response_description="Delete a developer")
 def delete_developer_endpoint(developer_id: str, db=Depends(get_database), user: str = Depends(get_current_user)):
     deleted = delete_developer(db, developer_id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Developer not found")
-    return {"message": "Developer deleted successfully"}
+        return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    "status": "error",
+                    "message": "Developer not found",
+                    "data": None,
+                },
+            )
+    return deleted
 
-@router.get("/", response_description="List all developers", response_model=List[DeveloperInDB])
-def list_developers_endpoint(db=Depends(get_database), limit: int = 100, user: str = Depends(get_current_user)):
-    developers = list_developers(db, limit)
+@router.get("", response_description="List all developers", response_model=List[DeveloperInDB])
+def list_developers_endpoint(db=Depends(get_database),
+                            pageNo: int = Query(1, ge=1, description="The page number to retrieve (1-based index)"),
+                            limit: int = Query(10, ge=1, le=100, description="Number of items per page (max 100)"),
+                            user: str = Depends(get_current_user)):
+    developers = list_developers(db, limit,pageNo)
     return developers

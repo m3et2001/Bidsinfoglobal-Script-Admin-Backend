@@ -34,14 +34,24 @@ def get_current_user(auth: t.Optional[HTTPAuthorizationCredentials] = Depends(ge
     if auth is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthenticated User, Please login first.",
+            detail={
+                "status": "error",
+                "message": "Unauthenticated User, Please login first.",
+                "data": None,
+            },
+
+            
         )
     
     verification = verify_access_token(auth.credentials)
     if not verification['verified']:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthenticated User, Please login first.",
+            detail={
+                "status": "error",
+                "message": "Unauthenticated User, Please login first.",
+                "data": None,
+            },
         )
   
     return {'token': auth.credentials, 'user': verification['user']}
