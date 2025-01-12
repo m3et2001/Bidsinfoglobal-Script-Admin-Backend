@@ -40,6 +40,7 @@ def save_file(file: UploadFile, file_name: str) -> str:
 
 def create_script(db: Database, script: ScriptCreate, file: UploadFile) -> JSONResponse:
     try:
+        print("****************************start create script *******************************")
         print(f"[INFO] Validating developer ID: {script.developer_id}")
         # Validate developer
         developer = db[DEVELOPERS_COLLECTION].find_one({"_id": ObjectId(script.developer_id)})

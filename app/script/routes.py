@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 from utils.utils import get_current_user
 
-import schedule
+from .scheduler import get_scheduler
 
 
 ALLOWED_EXTENSIONS = {'.py'}
@@ -42,6 +42,8 @@ def api_get_all_scheduled_scripts(db=Depends(get_database),
                                     page: int = Query(1, ge=1, description="The page number to retrieve (1-based index)"),
                                     page_size: int = Query(10, ge=1, le=100, description="Number of items per page (max 100)"),
                                     user: str = Depends(get_current_user)):
+    jobs = get_scheduler().get_jobs()
+    print(jobs)
     
     return get_all_scheduled_scripts(db,page_size,page)
 

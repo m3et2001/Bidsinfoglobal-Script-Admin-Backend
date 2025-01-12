@@ -19,11 +19,12 @@ config = dotenv_values(".env")
 
 @app.on_event("startup")
 def startup_db_client():
+    # app.mongodb_client = MongoClient("mongodb://localhost:27017")
     app.mongodb_client = MongoClient("mongodb+srv://bidsinfoglobal:3N4ZRDaS6H64GajL@qa.t5cmca1.mongodb.net")
     # app.mongodb_client = MongoClient(config["MONGODB_CONNECTION_URI"])
     app.database = app.mongodb_client["script"]
     print("Connected to the MongoDB database!")
-     # Initialize scheduler
+    #  # Initialize scheduler
     print("[INFO] Initializing scheduled jobs...")
     initialize_schedules(app.database)
     print("[INFO] Scheduled jobs initialized successfully.")
