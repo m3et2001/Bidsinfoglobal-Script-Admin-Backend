@@ -10,7 +10,8 @@ from datetime import datetime
 from fastapi.responses import JSONResponse
 
 SCRIPTS_COLLECTION = "scripts"
-UPLOAD_DIRECTORY = "uploaded_scripts/"
+UPLOAD_DIRECTORY = "/var/lib/jenkins/workspace/scripts/"
+# UPLOAD_DIRECTORY = "uploaded_scripts/"
 
 # Serialize datetime to ISO format string for JSON compatibility
 def serialize_datetime(data):
