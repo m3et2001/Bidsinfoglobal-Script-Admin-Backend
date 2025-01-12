@@ -16,7 +16,7 @@ SCRIPTS_SCHEDULE_COLLECTION = "scheduler"
 
 def run_script(script_path):
     """Run the Python script."""
-    print(f"[INFO] Running script: {script_path}")
+    print(f"*********************[INFO] Running script: {script_path}")
     try:
         subprocess.run(["python3", script_path], check=True)
         print(f"[INFO] Script {script_path} completed successfully.")
