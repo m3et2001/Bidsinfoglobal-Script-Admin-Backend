@@ -57,11 +57,12 @@ def schedule_script(db:Database,script_id,script_name,script_path, schedule_time
 
 
     # Schedule the new time
-    schedule.every().day.at(schedule_time_str).do(run_script, script_path)
+    # schedule.every().day.at(schedule_time_str).do(run_script, script_path)
+    schedule.every(10).seconds.do(run_script, script_path)
 
-    # Update the mapping
+    # Update the mapp(ng
     current_schedules[script_path] = schedule_time_str
-    print(current_schedules)
+    print(schedule.get_jobs())
     print(f"[INFO] Successfully scheduled {script_path} at {schedule_time_str}.")
 
 def unschedule_script(script_path):
