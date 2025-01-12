@@ -78,7 +78,7 @@ def schedule_script(db: Database, script_id, script_name, script_path, schedule_
 
     hour, minute = map(int, schedule_time_str.split(":"))
     # scheduler.add_job(run_script, CronTrigger(hour=hour, minute=minute), args=[script_path], id=str(script_id))
-    scheduler.add_job(run_script, 'interval', seconds=30,args=[script_path])
+    scheduler.add_job(run_script, 'interval', seconds=30,args=[script_path],id=script_id)
 
 
     # Update the mapping
