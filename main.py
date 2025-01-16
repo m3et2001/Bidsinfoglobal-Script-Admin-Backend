@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-
-app = FastAPI()
+from fastapi.middleware.cors import CORSMiddleware
 
 # Routes will be dynamically added here
 
@@ -13,6 +12,14 @@ from dotenv import dotenv_values
 from pymongo import MongoClient
 from app.script.scheduler import initialize_schedules
 
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Allow requests from your frontend
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 # app.include_router(auth_router,tags=["Auth"], prefix='/auth')
 # app.include_router(product_router, tags=["Product"],prefix='/product') 
 config = dotenv_values(".env")
