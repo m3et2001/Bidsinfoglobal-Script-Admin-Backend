@@ -15,7 +15,7 @@ from app.script.scheduler import initialize_schedules
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow requests from your frontend
+    allow_origins=["*"],  # Allow requests from your frontend
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
