@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+import threading
 # Routes will be dynamically added here
 
 from app.auth.routes import router as auth_router
@@ -31,9 +31,12 @@ def startup_db_client():
     # app.mongodb_client = MongoClient(config["MONGODB_CONNECTION_URI"])
     app.database = app.mongodb_client["script"]
     print("Connected to the MongoDB database!")
-    #  # Initialize scheduler
-    print("[INFO] Initializing scheduled jobs...")
-    initialize_schedules(app.database)
+ # Initialize scheduler in a separate thread
+    print("[INFO] Initializing scheduled jobs in a separate thread...")
+    thread = threading.Thread(target=initialize_schedules, args=(app.database,))
+    thread.daemon = True  # Ensures thread exits when the main program terminates
+    thread.start()
+    print("[INFO] Scheduled jobs are being initialized in the background.")
     print("[INFO] Scheduled jobs initialized successfully.")
 
 

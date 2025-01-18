@@ -259,6 +259,8 @@ def delete_script(db: Database, script_id: str) -> JSONResponse:
 def list_scripts(db: Database, limit: int = 10, page: int = 1) -> JSONResponse:
     try:
         skip = (page - 1) * limit
+        total_count = db[SCRIPTS_COLLECTION].count_documents({})
+
         scripts_cursor = db[SCRIPTS_COLLECTION].find().skip(skip).limit(limit)
         scripts = list(scripts_cursor)
         
@@ -271,7 +273,7 @@ def list_scripts(db: Database, limit: int = 10, page: int = 1) -> JSONResponse:
             content={
                 "status": "success",
                 "message": "Scripts retrieved successfully.",
-                "data": scripts,
+                "data": {"count":total_count,"data":scripts},
             },
         )
     except Exception as e:

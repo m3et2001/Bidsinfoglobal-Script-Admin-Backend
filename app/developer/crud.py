@@ -169,6 +169,7 @@ def delete_developer(db: Database, developer_id: str) -> JSONResponse:
 def list_developers(db: Database, limit: int = 10, page: int = 1) -> JSONResponse:
     try:
         skip = (page - 1) * limit
+        total_count = db[DEVELOPERS_COLLECTION].count_documents({})
         developers_cursor = db[DEVELOPERS_COLLECTION].find().skip(skip).limit(limit)
         developers = list(developers_cursor)
         for developer in developers:
@@ -178,7 +179,7 @@ def list_developers(db: Database, limit: int = 10, page: int = 1) -> JSONRespons
             content={
                 "status": "success",
                 "message": "Developers retrieved successfully.",
-                "data": serialize_datetime([DeveloperInDB(**developer).dict() for developer in developers]),  # Apply datetime serialization
+                "data": {"count":total_count,"data":serialize_datetime([DeveloperInDB(**developer).dict() for developer in developers])},  # Apply datetime serialization
             },
         )
     except Exception as e:

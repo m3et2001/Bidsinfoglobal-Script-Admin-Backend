@@ -136,6 +136,7 @@ def delete_admin(db: Database, admin_id: str) -> JSONResponse:
 def list_admins(db: Database, limit: int = 10, page: int = 1) -> JSONResponse:
     try:
         skip = (page - 1) * limit
+        total_count = db[ADMINS_COLLECTION].count_documents({})
         admins_cursor = db[ADMINS_COLLECTION].find().skip(skip).limit(limit)
         admins = list(admins_cursor)
         for admin in admins:
@@ -145,7 +146,7 @@ def list_admins(db: Database, limit: int = 10, page: int = 1) -> JSONResponse:
             content={
                 "status": "success",
                 "message": "Admins retrieved successfully.",
-                "data": [AdminInDB(**admin).dict() for admin in admins],
+                "data": {"count":total_count,"data":[AdminInDB(**admin).dict() for admin in admins]},
             },
         )
     except Exception as e:
