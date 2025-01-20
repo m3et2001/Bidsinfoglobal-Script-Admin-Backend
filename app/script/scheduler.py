@@ -37,7 +37,7 @@ def run_script(script_path):
         if not result:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Script not found")
         
-        if result.status:
+        if result["status"]:
             subprocess.run(["/usr/bin/python3", script_path], check=True)
             print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
