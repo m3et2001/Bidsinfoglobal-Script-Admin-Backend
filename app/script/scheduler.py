@@ -60,7 +60,7 @@ def handle_script_error(script_path, error_message):
             "status": "failed",
         }
     
-        result = database[SCRIPTS_COLLECTION].update_one({"script_file_path":script_path},{"$set": {"status": "false"}})
+        result = database[SCRIPTS_COLLECTION].update_one({"script_file_path":script_path},{"$set": {"status": False}})
         if result.matched_count == 0:
             raise HTTPException(
                 status_code=404, detail="Script with the given name not found."
