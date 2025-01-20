@@ -1,6 +1,8 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+from fastapi import UploadFile, HTTPException, status
+
 from datetime import datetime
 import subprocess
 from pymongo import MongoClient
@@ -29,8 +31,15 @@ def run_script(script_path):
     print(f"*********************[INFO] Running script: {script_path}")
     
     try:
-        subprocess.run(["/usr/bin/python3", script_path], check=True)
-        print(f"[INFO] Script {script_path} completed successfully.")
+        database = get_database()
+      
+        result = database[SCRIPTS_COLLECTION].find_one({"script_file_path":script_path})
+        if not result:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Script not found")
+        
+        if result.status:
+            subprocess.run(["/usr/bin/python3", script_path], check=True)
+            print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Error occurred while running {script_path}: {e}")
         # Handle error: Trigger API call or MongoDB query
@@ -50,6 +59,13 @@ def handle_script_error(script_path, error_message):
             "error_message": error_message,
             "status": "failed",
         }
+    
+        result = database[SCRIPTS_COLLECTION].update_one({"script_file_path":script_path},{"$set": {"status": "false"}})
+        if result.matched_count == 0:
+            raise HTTPException(
+                status_code=404, detail="Script with the given name not found."
+            )
+
         collection.insert_one(error_document)
         print("[INFO] Error logged successfully to MongoDB.",script_path,collection)
         print("[INFO] Error logged successfully to MongoDB.")
