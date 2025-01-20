@@ -154,7 +154,7 @@ def get_script(db: Database, script_id: str) -> JSONResponse:
             serialized_script = serialize_datetime(script)
             print("sdfsdf")
             serialized_script["_id"] = str(serialized_script["_id"])
-            recent_log = get_recent_log_file()
+            recent_log = get_recent_log_file(serialized_script["script_name"])
             serialized_script["recent_log_file"] = recent_log
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
