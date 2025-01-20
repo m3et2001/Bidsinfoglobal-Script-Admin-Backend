@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException, status,File,Query
 from typing import List
 from db import get_database
-from .crud import create_script, get_script, update_script, delete_script, list_scripts,get_scripts_by_developer,get_all_scheduled_scripts,LOGS_FOLDER
+from .crud import create_script, get_script, update_script, delete_script, list_scripts,get_scripts_by_developer,get_all_scheduled_scripts,LOGS_FOLDER,SCRIPTS_COLLECTION
 from .models import ScriptCreate, ScriptUpdate, ScriptInDB,ScriptType,ScheduledScript,ScheduledScriptInDB
 from .validators import validate_data
 from datetime import date,time,datetime
@@ -190,3 +190,28 @@ def download_log(filename: str):
         status_code=404,
         content={"status": "error", "message": "Log file not found."},
     )
+
+@router.put("/update-script-status/:script_name")
+async def update_script_status( script_name:str,db=Depends(get_database)):
+    """
+    Update the status of a script by matching its name.
+    """
+    try:
+        # Find the script by name and update its status
+        result = db[SCRIPTS_COLLECTION].update_one({"script_name":script_name},{"$set": {"status": "false"}})
+        
+
+        if result.matched_count == 0:
+            raise HTTPException(
+                status_code=404, detail="Script with the given name not found."
+            )
+
+        return {
+            "status": "success",
+            "message": "Script status updated successfully.",
+            "updated_count": result.modified_count,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"An error occurred: {e}"
+        )

@@ -16,7 +16,6 @@ LOGS_FOLDER = "/var/lib/jenkins/workspace/scripts/assets/logs"
 
 # Serialize datetime to ISO format string for JSON compatibility
 def serialize_datetime(data):
-    print("Sdfsdfsdf")
     if isinstance(data, datetime):
         return data.isoformat()  # Convert datetime to ISO format
     if isinstance(data, dict):
@@ -371,7 +370,7 @@ def get_all_scheduled_scripts(db: Database, limit: int = 10, page: int = 1) -> J
     try:
         skip = (page - 1) * limit
         scripts_cursor = db[SCRIPTS_SCHEDULE_COLLECTION].find().skip(skip).limit(limit)
-        scripts = list(scripts_cursor)
+        scripts = list(scripts_cursor) 
         
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -398,3 +397,4 @@ def get_all_scheduled_scripts(db: Database, limit: int = 10, page: int = 1) -> J
                 "data": None,
             },
         )
+

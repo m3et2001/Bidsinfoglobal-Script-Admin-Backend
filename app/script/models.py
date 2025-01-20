@@ -15,7 +15,7 @@ class ScriptBase(BaseModel):
     development_date: datetime = Field(..., example=datetime.now().date())
     schedule_time: datetime = Field(..., example="03:70")
     country: str = Field(..., example="USA")
-    status: bool = Field(..., example="Active")
+    status: bool = Field(..., example="true")
     bigref_no: list = Field(..., example=["BR123456"])
     recent_logs: Optional[str] = Field(None, example="Initial commit")
     script_file_path: Optional[str] = Field(None, example="uploaded_scripts/script.py")

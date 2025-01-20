@@ -29,7 +29,7 @@ def run_script(script_path):
     print(f"*********************[INFO] Running script: {script_path}")
     
     try:
-        subprocess.run(["python3", script_path], check=True)
+        subprocess.run(["/usr/bin/python3", script_path], check=True)
         print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Error occurred while running {script_path}: {e}")
@@ -51,7 +51,7 @@ def handle_script_error(script_path, error_message):
             "status": "failed",
         }
         collection.insert_one(error_document)
-        print("[INFO] Error logged successfully to MongoDB.",script_path)
+        print("[INFO] Error logged successfully to MongoDB.",script_path,collection)
         print("[INFO] Error logged successfully to MongoDB.")
     except Exception as mongo_exception:
         print(f"[ERROR] Exception occurred while logging to MongoDB: {mongo_exception}")
