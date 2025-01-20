@@ -37,7 +37,8 @@ def run_script(script_path):
         if not result:
                 print("Script not found at {script_path}")
         else:
-            if result["status"]:
+            # if result["status"]:
+            if True:
                 subprocess.run(["/usr/bin/python3", script_path], check=True)
                 print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
