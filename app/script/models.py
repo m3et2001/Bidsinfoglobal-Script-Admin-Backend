@@ -8,7 +8,7 @@ class ScriptType(str, Enum):
     project = "Project"
     grant = "Grant"
     contract_award = "Contract Award"
-    other = "Other"
+
 class ScriptBase(BaseModel):
     script_name: str = Field(..., example="DataProcessor")
     developer_id: str = Field(..., example="Jane Doe")

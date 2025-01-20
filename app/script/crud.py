@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 SCRIPTS_COLLECTION = "scripts"
 UPLOAD_DIRECTORY = "/var/lib/jenkins/workspace/scripts/"
+LOGS_FOLDER = "/var/lib/jenkins/workspace/scripts/assets/logs"  
 # UPLOAD_DIRECTORY = "uploaded_scripts/"
 
 # Serialize datetime to ISO format string for JSON compatibility
@@ -24,8 +25,10 @@ def serialize_datetime(data):
         return [serialize_datetime(item) for item in data]
     return data
 
-def save_file(file: UploadFile, file_name: str) -> str:
+def save_file(file: UploadFile, file_name: str,script_type:str) -> str:
     try:
+        UPLOAD_DIRECTORY=UPLOAD_DIRECTORY+script_type
+        
         if not os.path.exists(UPLOAD_DIRECTORY):
             os.makedirs(UPLOAD_DIRECTORY)
     
@@ -57,7 +60,7 @@ def create_script(db: Database, script: ScriptCreate, file: UploadFile) -> JSONR
         # Save the file with the script name
         file_extension = file.filename.split(".")[-1]
         saved_file_name = f"{script.script_name}.{file_extension}"
-        file_path = save_file(file, saved_file_name)
+        file_path = save_file(file, saved_file_name,script.script_type)
 
         # Prepare script dictionary for database insertion
         script_dict = script.dict()
@@ -102,7 +105,38 @@ def create_script(db: Database, script: ScriptCreate, file: UploadFile) -> JSONR
                 "data": None,
             },
         )
+def get_recent_log_file(script_name: str):
+    try:
+        # Filter files that match the pattern "<script_name>_<timestamp>.log"
+        matching_files = []
+        for file in os.listdir(LOGS_FOLDER):
+            if file.startswith(f"{script_name}_") and file.endswith(".log"):
+                # Extract the timestamp part from the filename
+                timestamp_str = file[len(script_name) + 1 : -4]  # Remove script_name_ and .log
+                try:
+                    # Ensure the timestamp can be parsed
+                    datetime.strptime(timestamp_str, "%Y-%m-%d-%H-%M-%S")
+                    matching_files.append(os.path.join(LOGS_FOLDER, file))
+                except ValueError:
+                    continue  # Skip files with invalid timestamps
 
+        if not matching_files:
+            return None
+        
+        # Sort files by timestamp in the filename
+        matching_files.sort(
+            key=lambda x: datetime.strptime(
+                x.split("_")[-1].replace(".log", ""), "%Y-%m-%d-%H-%M-%S"
+            ),
+            reverse=True,
+        )
+
+        # Return the most recent log file
+        return matching_files[0]
+    except Exception as e:
+        print(f"Error retrieving recent log file for script '{script_name}': {e}")
+        return None
+     
 def get_script(db: Database, script_id: str) -> JSONResponse:
     try:
         if not ObjectId.is_valid(script_id):
@@ -120,6 +154,8 @@ def get_script(db: Database, script_id: str) -> JSONResponse:
             serialized_script = serialize_datetime(script)
             print("sdfsdf")
             serialized_script["_id"] = str(serialized_script["_id"])
+            recent_log = get_recent_log_file()
+            serialized_script["recent_log_file"] = recent_log
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content={
