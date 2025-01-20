@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException, status,File,Query
 from typing import List
 from db import get_database
-from .crud import create_script, get_script, update_script, delete_script, list_scripts,get_scripts_by_developer,get_all_scheduled_scripts
+from .crud import create_script, get_script, update_script, delete_script, list_scripts,get_scripts_by_developer,get_all_scheduled_scripts,LOGS_FOLDER
 from .models import ScriptCreate, ScriptUpdate, ScriptInDB,ScriptType,ScheduledScript,ScheduledScriptInDB
 from .validators import validate_data
 from datetime import date,time,datetime
@@ -9,9 +9,9 @@ from fastapi.responses import JSONResponse
 
 from typing import Optional
 from utils.utils import get_current_user
-
+import os
 from .scheduler import get_scheduler
-
+from fastapi.responses import FileResponse
 
 ALLOWED_EXTENSIONS = {'.py'}
 ALLOWED_MIME_TYPES = {'text/x-python'}
@@ -179,3 +179,14 @@ def get_all_scripts_by_developer(developer_id: str, db=Depends(get_database),
     return scripts
 
 
+
+
+@router.get("/download-log/{filename}")
+def download_log(filename: str):
+    file_path = os.path.join(LOGS_FOLDER, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/octet-stream", filename=filename)
+    return JSONResponse(
+        status_code=404,
+        content={"status": "error", "message": "Log file not found."},
+    )

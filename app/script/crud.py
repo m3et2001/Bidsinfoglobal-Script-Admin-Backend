@@ -105,36 +105,41 @@ def create_script(db: Database, script: ScriptCreate, file: UploadFile) -> JSONR
                 "data": None,
             },
         )
+    
 def get_recent_log_file(script_name: str):
     try:
-        # Filter files that match the pattern "<script_name>_<timestamp>.log"
+        print(f"Looking for logs in folder: {LOGS_FOLDER} for script: {script_name}")
+        
+        # Filter files with the script_name prefix
         matching_files = []
         for file in os.listdir(LOGS_FOLDER):
             if file.startswith(f"{script_name}_") and file.endswith(".log"):
-                # Extract the timestamp part from the filename
-                timestamp_str = file[len(script_name) + 1 : -4]  # Remove script_name_ and .log
+                print(f"Found log file: {file}")
+                timestamp_str = file[len(script_name) + 1 : -4]  # Extract the timestamp
                 try:
-                    # Ensure the timestamp can be parsed
+                    # Parse the timestamp to validate
                     datetime.strptime(timestamp_str, "%Y-%m-%d-%H-%M-%S")
                     matching_files.append(os.path.join(LOGS_FOLDER, file))
                 except ValueError:
-                    continue  # Skip files with invalid timestamps
+                    print(f"Skipping invalid log file: {file}")
+                    continue
 
         if not matching_files:
+            print("No matching log files found.")
             return None
-        
-        # Sort files by timestamp in the filename
+
+        # Sort by timestamp and get the most recent file
         matching_files.sort(
             key=lambda x: datetime.strptime(
                 x.split("_")[-1].replace(".log", ""), "%Y-%m-%d-%H-%M-%S"
             ),
             reverse=True,
         )
-
-        # Return the most recent log file
-        return matching_files[0]
+        most_recent_file = matching_files[0]
+        print(f"Most recent log file: {most_recent_file}")
+        return most_recent_file
     except Exception as e:
-        print(f"Error retrieving recent log file for script '{script_name}': {e}")
+        print(f"Error retrieving log files: {e}")
         return None
      
 def get_script(db: Database, script_id: str) -> JSONResponse:
