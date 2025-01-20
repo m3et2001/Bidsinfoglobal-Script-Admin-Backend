@@ -119,7 +119,7 @@ def get_recent_log_file(script_name: str):
                 try:
                     # Parse the timestamp to validate
                     datetime.strptime(timestamp_str, "%Y-%m-%d-%H-%M-%S")
-                    matching_files.append(os.path.join(LOGS_FOLDER, file))
+                    matching_files.append(file)  # Append only the file name, not the full path
                 except ValueError:
                     print(f"Skipping invalid log file: {file}")
                     continue
@@ -135,13 +135,13 @@ def get_recent_log_file(script_name: str):
             ),
             reverse=True,
         )
-        most_recent_file = matching_files[0]
+        most_recent_file = matching_files[0]  # This will only be the file name
         print(f"Most recent log file: {most_recent_file}")
         return most_recent_file
     except Exception as e:
         print(f"Error retrieving log files: {e}")
         return None
-     
+       
 def get_script(db: Database, script_id: str) -> JSONResponse:
     try:
         if not ObjectId.is_valid(script_id):
