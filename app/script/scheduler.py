@@ -37,7 +37,6 @@ def run_script(script_path):
         if not result:
                 print("Script not found at {script_path}")
         else:
-                
             if result["status"]:
                 subprocess.run(["/usr/bin/python3", script_path], check=True)
                 print(f"[INFO] Script {script_path} completed successfully.")
@@ -61,7 +60,7 @@ def handle_script_error(script_path, error_message):
             "status": "failed",
         }
     
-        result = database[SCRIPTS_COLLECTION].update_one({"script_file_path":script_path},{"$set": {"status": False}})
+        result = database[SCRIPTS_COLLECTION].update_one({"script_file_path":script_path},{"$set": {"status": False,"recent_logs":error_message}})
         if result.matched_count == 0:
             raise HTTPException(
                 status_code=404, detail="Script with the given name not found."
