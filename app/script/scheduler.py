@@ -9,11 +9,12 @@ from fastapi import HTTPException
 from threading import Thread
 from .models import ScheduledScriptInDB
 from db import get_database
-from .crud import SCRIPTS_COLLECTION
+
 
 # Mapping to track current schedules
 current_schedules = {}
 SCRIPTS_SCHEDULE_COLLECTION = "scheduler"
+SCRIPTS_COLLECTION="scripts"
 _scheduler_instance = None
 def get_scheduler():
     """Returns a global instance of the APScheduler."""
@@ -26,6 +27,7 @@ def get_scheduler():
 def run_script(script_path):
     """Run the Python script."""
     print(f"*********************[INFO] Running script: {script_path}")
+    
     try:
         subprocess.run(["python3", script_path], check=True)
         print(f"[INFO] Script {script_path} completed successfully.")
