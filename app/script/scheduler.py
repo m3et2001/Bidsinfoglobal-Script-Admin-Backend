@@ -8,6 +8,8 @@ from pymongo.database import Database
 from fastapi import HTTPException
 from threading import Thread
 from .models import ScheduledScriptInDB
+from db import get_database
+from .crud import SCRIPTS_COLLECTION
 
 # Mapping to track current schedules
 current_schedules = {}
@@ -29,6 +31,28 @@ def run_script(script_path):
         print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Error occurred while running {script_path}: {e}")
+        # Handle error: Trigger API call or MongoDB query
+        handle_script_error(script_path, str(e))
+
+def handle_script_error(script_path, error_message):
+    
+
+    # Example 2: Perform a MongoDB query
+    try:
+        database = get_database()
+
+        collection = database["error_logs"]
+
+        error_document = {
+            "script_path": script_path,
+            "error_message": error_message,
+            "status": "failed",
+        }
+        collection.insert_one(error_document)
+        print("[INFO] Error logged successfully to MongoDB.")
+    except Exception as mongo_exception:
+        print(f"[ERROR] Exception occurred while logging to MongoDB: {mongo_exception}")
+
 
 
 def schedule_script(db: Database, script_id, script_name, script_path, schedule_time):
