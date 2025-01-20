@@ -36,10 +36,11 @@ def run_script(script_path):
         result = database[SCRIPTS_COLLECTION].find_one({"script_file_path":script_path})
         if not result:
                 print("Script not found at {script_path}")
+        else:
                 
-        if result["status"]:
-            subprocess.run(["/usr/bin/python3", script_path], check=True)
-            print(f"[INFO] Script {script_path} completed successfully.")
+            if result["status"]:
+                subprocess.run(["/usr/bin/python3", script_path], check=True)
+                print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Error occurred while running {script_path}: {e}")
         # Handle error: Trigger API call or MongoDB query
