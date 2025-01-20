@@ -35,8 +35,8 @@ def run_script(script_path):
       
         result = database[SCRIPTS_COLLECTION].find_one({"script_file_path":script_path})
         if not result:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Script not found")
-        
+                print("Script not found at {script_path}")
+                
         if result["status"]:
             subprocess.run(["/usr/bin/python3", script_path], check=True)
             print(f"[INFO] Script {script_path} completed successfully.")
