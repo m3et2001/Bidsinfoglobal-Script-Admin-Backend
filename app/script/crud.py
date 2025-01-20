@@ -10,7 +10,7 @@ from datetime import datetime
 from fastapi.responses import JSONResponse
 
 SCRIPTS_COLLECTION = "scripts"
-UPLOAD_DIRECTORY = "/var/lib/jenkins/workspace/scripts/"
+UPLOAD_DIRECTORY_BASE = "/var/lib/jenkins/workspace/scripts/"
 LOGS_FOLDER = "/var/lib/jenkins/workspace/scripts/assets/logs"  
 # UPLOAD_DIRECTORY = "uploaded_scripts/"
 
@@ -27,7 +27,7 @@ def serialize_datetime(data):
 
 def save_file(file: UploadFile, file_name: str,script_type:str) -> str:
     try:
-        UPLOAD_DIRECTORY=UPLOAD_DIRECTORY+script_type
+        UPLOAD_DIRECTORY=UPLOAD_DIRECTORY_BASE+script_type
         
         if not os.path.exists(UPLOAD_DIRECTORY):
             os.makedirs(UPLOAD_DIRECTORY)
