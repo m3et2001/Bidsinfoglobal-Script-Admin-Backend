@@ -51,6 +51,7 @@ def handle_script_error(script_path, error_message):
             "status": "failed",
         }
         collection.insert_one(error_document)
+        print("[INFO] Error logged successfully to MongoDB.",script_path)
         print("[INFO] Error logged successfully to MongoDB.")
     except Exception as mongo_exception:
         print(f"[ERROR] Exception occurred while logging to MongoDB: {mongo_exception}")
