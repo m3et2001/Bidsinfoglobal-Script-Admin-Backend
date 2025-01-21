@@ -39,7 +39,13 @@ def run_script(script_path):
         else:
             # if result["status"]:
             if True:
-                subprocess.run(["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path], check=True)
+                subprocess.run(
+                        f"source /var/lib/jenkins/workspace/script-admin-backend/.venv/bin/activate && python3 {script_path}",
+                        shell=True,
+                        check=True,
+                        executable="/bin/bash"  # Use Bash to handle `source`)  
+                        )
+                # subprocess.run(["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path], check=True)
                 print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Error occurred while running {script_path}: {e}")
