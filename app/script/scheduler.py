@@ -39,7 +39,7 @@ def run_script(script_path):
         else:
             # if result["status"]:
             if True:
-                subprocess.run(["/usr/bin/python3", script_path], check=True)
+                subprocess.run(["python3", script_path], check=True)
                 print(f"[INFO] Script {script_path} completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Error occurred while running {script_path}: {e}")
