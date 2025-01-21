@@ -11,6 +11,8 @@ from fastapi import HTTPException
 from threading import Thread
 from .models import ScheduledScriptInDB
 from db import get_database
+from datetime import datetime
+
 
 
 # Mapping to track current schedules
@@ -38,6 +40,7 @@ def run_script(script_path):
                 print("Script not found at {script_path}")
         else:
             # if result["status"]:
+            
             if True:
                 # subprocess.run(
                 #         f"source /var/lib/jenkins/workspace/script-admin-backend/.venv/bin/activate && python3 {script_path}",
@@ -94,6 +97,9 @@ def schedule_script(db: Database, script_id, script_name, script_path, schedule_
     print(f"[INFO] Scheduling script: {script_path} at {schedule_time}")
     scheduler = get_scheduler()
     print("*************************** *schedule_script *******************************")
+    # Get current time
+    current_time = datetime.now().strftime('%H:%M:%S')
+    print("Current Time:", current_time)
 
     try:
         # Convert schedule_time to HH:MM if it's not a string
