@@ -12,7 +12,7 @@ from threading import Thread
 from .models import ScheduledScriptInDB
 from db import get_database
 from datetime import datetime
-
+from pytz import timezone
 
 
 # Mapping to track current schedules
@@ -131,9 +131,9 @@ def schedule_script(db: Database, script_id, script_name, script_path, schedule_
     else:
         db[SCRIPTS_SCHEDULE_COLLECTION].update_one({"script_id": script_id}, {"$set": script_data})
 
-
+    ist_timezone = timezone("Asia/Kolkata")
     hour, minute = map(int, schedule_time_str.split(":"))
-    scheduler.add_job(run_script, CronTrigger(hour=hour, minute=minute), args=[script_path], id=str(script_id))
+    scheduler.add_job(run_script, CronTrigger(hour=hour, minute=minute,timezone=ist_timezone), args=[script_path], id=str(script_id))
     # scheduler.add_job(run_script, 'interval', seconds=30,args=[script_path],id=script_id)
 
 
