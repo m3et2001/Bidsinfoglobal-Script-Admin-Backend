@@ -198,7 +198,7 @@ def update_script(db: Database, script_id: str, script_update: ScriptUpdate, fil
         if file:
             file_extension = file.filename.split(".")[-1]
             saved_file_name = f"{script_update.script_name}.{file_extension}"
-            file_path = save_file(file, saved_file_name)
+            file_path = save_file(file, saved_file_name,update_data["script_type"])
             update_data["script_file_path"] = file_path
         else:
             result = db[SCRIPTS_COLLECTION].find_one({"_id": ObjectId(script_id)})
