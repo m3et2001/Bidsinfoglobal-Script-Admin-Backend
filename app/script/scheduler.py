@@ -141,6 +141,30 @@ def schedule_script(db: Database, script_id, script_name, script_path, schedule_
     current_schedules[script_id] = schedule_time_str
     print(f"[INFO] Successfully scheduled {script_path} at {schedule_time_str}.")
 
+def remove_schedule_script(db: Database, script_id, script_name):
+    try:
+        print(f"[INFO] Remove from Scheduling script: {script_name}")
+        scheduler = get_scheduler()
+        # Get current time
+        current_time = datetime.now().strftime('%H:%M:%S')
+        print("Current Time:", current_time)
+
+        # Remove any existing schedule for this script
+        unschedule_script(scheduler, script_id)
+
+        # Save or update schedule in the database
+        print("*************************** *schedule_script delete_one*******************************")
+
+        result = db[SCRIPTS_SCHEDULE_COLLECTION].delete_one({"script_id": script_id})
+        return {
+            "status":"success",
+            "message":"Script removed successfully"
+        }
+    except Exception as e:
+        return {
+            "status":"error",
+            "message":"Error during script remove:{e} "
+        }
 
 def unschedule_script(scheduler, script_id):
     """Remove any existing schedule for a given script ID."""

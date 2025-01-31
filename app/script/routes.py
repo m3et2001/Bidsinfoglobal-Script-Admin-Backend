@@ -182,7 +182,7 @@ def get_all_scripts_by_developer(developer_id: str, db=Depends(get_database),
 
 
 @router.get("/download-log/{filename}")
-def download_log(filename: str):
+def download_log(filename: str, user: str = Depends(get_current_user)):
     file_path = os.path.join(LOGS_FOLDER, filename)
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="application/octet-stream", filename=filename)
@@ -192,7 +192,7 @@ def download_log(filename: str):
     )
 
 @router.put("/update-script-status/:script_name")
-async def update_script_status( script_name:str,db=Depends(get_database)):
+async def update_script_status( script_name:str,db=Depends(get_database), user: str = Depends(get_current_user)):
     """
     Update the status of a script by matching its name.
     """

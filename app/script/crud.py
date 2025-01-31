@@ -5,14 +5,14 @@ from .models import ScriptCreate, ScriptUpdate, ScriptInDB, ScheduledScript, Sch
 from fastapi import UploadFile, HTTPException, status
 import os
 from ..developer.crud import DEVELOPERS_COLLECTION
-from .scheduler import schedule_script, SCRIPTS_SCHEDULE_COLLECTION
+from .scheduler import schedule_script, SCRIPTS_SCHEDULE_COLLECTION,remove_schedule_script
 from datetime import datetime
 from fastapi.responses import JSONResponse
 
 SCRIPTS_COLLECTION = "scripts"
 UPLOAD_DIRECTORY_BASE = "/var/lib/jenkins/workspace/scripts/"
 LOGS_FOLDER = "/var/lib/jenkins/workspace/scripts/assets/logs"  
-# UPLOAD_DIRECTORY = "uploaded_scripts/"
+# UPLOAD_DIRECTORY_BASE = "uploaded_scripts/"
 
 # Serialize datetime to ISO format string for JSON compatibility
 def serialize_datetime(data):
@@ -40,6 +40,21 @@ def save_file(file: UploadFile, file_name: str,script_type:str) -> str:
         return file_path
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error saving file: {e}")
+
+def delete_file(file_path: str) -> bool:
+    """Deletes a file from the system if it exists."""
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"[INFO] Deleted file: {file_path}")
+            return True
+        else:
+            print(f"[WARNING] File not found: {file_path}")
+            return False
+    except Exception as e:
+        print(f"[ERROR] Error deleting file: {file_path}. Error: {e}")
+        return False
+
 
 def create_script(db: Database, script: ScriptCreate, file: UploadFile) -> JSONResponse:
     try:
@@ -266,6 +281,30 @@ def delete_script(db: Database, script_id: str) -> JSONResponse:
                 },
             )
         
+        script = db[SCRIPTS_COLLECTION].find_one({"_id": ObjectId(script_id)})
+
+        if script and "script_file_path" in script:
+            delete_file(script["script_file_path"])
+        
+        try:
+            re=remove_schedule_script(db, script_id, script["script_name"])
+            if re["status"] == "error":
+
+                return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    "status": "error",
+                    "message": re["message"],
+                    "data": None,
+                })
+        except ValueError as e:
+            return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "status": "error",
+                "message": e,
+                "data": None,
+            })
         result = db[SCRIPTS_COLLECTION].delete_one({"_id": ObjectId(script_id)})
         
         if result.deleted_count == 1:
