@@ -1,11 +1,10 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.interval import IntervalTrigger
-from fastapi import UploadFile, HTTPException, status
+# from apscheduler.triggers.interval import IntervalTrigger
+from fastapi import  HTTPException
 
 from datetime import datetime
 import subprocess
-from pymongo import MongoClient
 from pymongo.database import Database
 from fastapi import HTTPException
 from threading import Thread
@@ -14,12 +13,24 @@ from db import get_database
 from datetime import datetime
 from pytz import timezone
 
+import threading
+import queue
+import time
+import concurrent.futures
+from dotenv import load_dotenv
+load_dotenv() 
 
-# Mapping to track current schedules
-current_schedules = {}
+# MongoDB collections
 SCRIPTS_SCHEDULE_COLLECTION = "scheduler"
-SCRIPTS_COLLECTION="scripts"
+SCRIPTS_COLLECTION = "scripts"
+current_schedules={}
 _scheduler_instance = None
+# Limit concurrent executions (adjust based on VPS resources)
+MAX_CONCURRENT_SCRIPTS = 5
+semaphore = threading.Semaphore(MAX_CONCURRENT_SCRIPTS)
+
+# Queue for scripts that exceed the max limit
+script_queue = queue.Queue()
 def get_scheduler():
     """Returns a global instance of the APScheduler."""
     global _scheduler_instance
@@ -29,31 +40,43 @@ def get_scheduler():
     return _scheduler_instance
 
 def run_script(script_path):
-    """Run the Python script."""
-    print(f"*********************[INFO] Running script: {script_path}")
-    
-    try:
-        database = get_database()
-      
-        result = database[SCRIPTS_COLLECTION].find_one({"script_file_path":script_path})
-        if not result:
-                print("Script not found at {script_path}")
+    print("""Run a Python script with limited parallel execution.""",script_path)
+    slot_status= semaphore.acquire(blocking=False)
+    print(slot_status,script_path)
+    if slot_status:  # Check if a slot is available
+        try:
+            print(f"[INFO] Running script: {script_path}")
+            # Local
+            # subprocess.run(
+            #     ["/Users/meetvelani/Desktop/codebase/bidsinfoglobal/ScriptAdmin/.venv/bin/python3", script_path],
+            #     check=True
+            # )
+
+            #server
+            subprocess.run(
+                ["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path],
+                check=True
+            )
+            print(f"[INFO] Script {script_path} completed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Error occurred while running {script_path}: {e}")
+            handle_script_error(script_path, str(e))
+            process_queue()  # Check if any queued scripts can run
+        finally:
+            semaphore.release()  # Release slot after script completes
+            process_queue()  # Check if any queued scripts can run
+    else:
+        print(f"[QUEUE] Max scripts running. Adding {script_path} to queue.")
+        script_queue.put(script_path)
+
+def process_queue():
+    print( """Process queued scripts when slots become available.""" )
+    while not script_queue.empty():
+        if semaphore._value < MAX_CONCURRENT_SCRIPTS:  # Check for an open slot
+            script_path = script_queue.get()
+            run_script(script_path)
         else:
-            # if result["status"]:
-            
-            if True:
-                # subprocess.run(
-                #         f"source /var/lib/jenkins/workspace/script-admin-backend/.venv/bin/activate && python3 {script_path}",
-                #         shell=True,
-                #         check=True,
-                #         executable="/bin/bash"  # Use Bash to handle `source`)  
-                #         )
-                subprocess.run(["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path], check=True)
-                print(f"[INFO] Script {script_path} completed successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"[ERROR] Error occurred while running {script_path}: {e}")
-        # Handle error: Trigger API call or MongoDB query
-        handle_script_error(script_path, str(e))
+            break  # No available slots, exit loop
 
 def handle_script_error(script_path, error_message):
     
@@ -71,6 +94,7 @@ def handle_script_error(script_path, error_message):
         }
     
         result = database[SCRIPTS_COLLECTION].update_one({"script_file_path":script_path},{"$set": {"status": False,"recent_logs":error_message}})
+        result = database[SCRIPTS_SCHEDULE_COLLECTION].delete_one({"script_file_path":script_path})
         if result.matched_count == 0:
             raise HTTPException(
                 status_code=404, detail="Script with the given name not found."
@@ -81,19 +105,10 @@ def handle_script_error(script_path, error_message):
         print("[INFO] Error logged successfully to MongoDB.")
     except Exception as mongo_exception:
         print(f"[ERROR] Exception occurred while logging to MongoDB: {mongo_exception}")
-
-
+    
 
 def schedule_script(db: Database, script_id, script_name, script_path, schedule_time):
-    """
-    Schedule the script to run at the specified time using APScheduler.
-    :param scheduler: The APScheduler instance.
-    :param db: The database instance.
-    :param script_id: ID of the script.
-    :param script_name: Name of the script.
-    :param script_path: Path to the Python script.
-    :param schedule_time: Time in HH:MM (24-hour format) or seconds interval.
-    """
+    # return "ee"
     print(f"[INFO] Scheduling script: {script_path} at {schedule_time}")
     scheduler = get_scheduler()
     print("*************************** *schedule_script *******************************")
@@ -135,27 +150,24 @@ def schedule_script(db: Database, script_id, script_name, script_path, schedule_
     hour, minute = map(int, schedule_time_str.split(":"))
     scheduler.add_job(run_script, CronTrigger(hour=hour, minute=minute,timezone=ist_timezone), args=[script_path], id=str(script_id))
     # scheduler.add_job(run_script, 'interval', seconds=30,args=[script_path],id=script_id)
-
+ 
 
     # Update the mapping
     current_schedules[script_id] = schedule_time_str
     print(f"[INFO] Successfully scheduled {script_path} at {schedule_time_str}.")
+    # return True
 
 def remove_schedule_script(db: Database, script_id, script_name):
     try:
         print(f"[INFO] Remove from Scheduling script: {script_name}")
         scheduler = get_scheduler()
-        # Get current time
-        current_time = datetime.now().strftime('%H:%M:%S')
-        print("Current Time:", current_time)
 
         # Remove any existing schedule for this script
         unschedule_script(scheduler, script_id)
 
         # Save or update schedule in the database
         print("*************************** *schedule_script delete_one*******************************")
-
-        result = db[SCRIPTS_SCHEDULE_COLLECTION].delete_one({"script_id": script_id})
+        db[SCRIPTS_SCHEDULE_COLLECTION].delete_one({"script_id": script_id})
         return {
             "status":"success",
             "message":"Script removed successfully"
@@ -186,10 +198,13 @@ def initialize_schedules( db: Database):
     :param scheduler: The APScheduler instance.
     :param db: The database instance.
     """
-    print("[INFO] Initializing schedules from the database...")
+    print("[INFO] Initializing schedules from the database..")
     try:
         scripts_cursor = db[SCRIPTS_SCHEDULE_COLLECTION].find()
+      
         scripts = list(scripts_cursor)
+        print(len(scripts))
+        
 
         for script in scripts:
             script["_id"] = str(script["_id"])
@@ -211,3 +226,13 @@ def initialize_schedules( db: Database):
                 print(f"[WARNING] Script {script_obj.script_name} is missing schedule_time or file path.")
     except Exception as e:
         print(f"[ERROR] Error initializing schedules: {e}")
+
+# Start queue processing in a background thread
+def queue_worker():
+    print( """Continuously check and run queued scripts.""")
+    while True:
+        process_queue()
+        time.sleep(5)  # Check every 5 seconds
+
+# Start queue worker in a separate thread
+# threading.Thread(target=queue_worker, daemon=True).start()

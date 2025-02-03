@@ -8,10 +8,15 @@ from ..developer.crud import DEVELOPERS_COLLECTION
 from .scheduler import schedule_script, SCRIPTS_SCHEDULE_COLLECTION,remove_schedule_script
 from datetime import datetime
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv, dotenv_values
+config = dotenv_values(".env")
+load_dotenv() 
 
 SCRIPTS_COLLECTION = "scripts"
-UPLOAD_DIRECTORY_BASE = "/var/lib/jenkins/workspace/scripts/"
-LOGS_FOLDER = "/var/lib/jenkins/workspace/scripts/assets/logs"  
+UPLOAD_DIRECTORY_BASE = os.getenv("UPLOAD_DIRECTORY_BASE", "uploaded_scripts/")
+LOGS_FOLDER = config["LOG_PATH"]
+
+# UPLOAD_DIRECTORY_BASE = "/var/lib/jenkins/workspace/scripts/"
 # UPLOAD_DIRECTORY_BASE = "uploaded_scripts/"
 
 # Serialize datetime to ISO format string for JSON compatibility
@@ -236,29 +241,28 @@ def update_script(db: Database, script_id: str, script_update: ScriptUpdate, fil
                 schedule_script(db, script_id, script_update.script_name, file_path, script_update.schedule_time)
             except ValueError as e:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-        
-        if result.modified_count == 1 or file:
-            updated_script = db[SCRIPTS_COLLECTION].find_one({"_id": ObjectId(script_id)})
-            # Serialize datetime fields before returning
-            serialized_script = serialize_datetime(updated_script)
-            serialized_script["_id"] = str(serialized_script["_id"])
-            return JSONResponse(
-                status_code=status.HTTP_200_OK,
-                content={
-                    "status": "success",
-                    "message": "Script updated successfully.",
-                    "data": serialized_script,
-                },
-            )
-        
+        # if result.modified_count == 1 or file:
+        updated_script = db[SCRIPTS_COLLECTION].find_one({"_id": ObjectId(script_id)})
+        # Serialize datetime fields before returning
+        serialized_script = serialize_datetime(updated_script)
+        serialized_script["_id"] = str(serialized_script["_id"])
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_200_OK,
             content={
-                "status": "error",
-                "message": "Script not found or no changes made.",
-                "data": None,
+                "status": "success",
+                "message": "Script updated successfully.",
+                "data": serialized_script,
             },
         )
+        
+        # return JSONResponse(
+        #     status_code=status.HTTP_404_NOT_FOUND,
+        #     content={
+        #         "status": "error",
+        #         "message": "Script not found or no changes made.",
+        #         "data": None,
+        #     },
+        # )
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

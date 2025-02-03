@@ -12,6 +12,8 @@ from utils.utils import get_current_user
 import os
 from .scheduler import get_scheduler
 from fastapi.responses import FileResponse
+from dotenv import load_dotenv
+load_dotenv() 
 
 ALLOWED_EXTENSIONS = {'.py'}
 ALLOWED_MIME_TYPES = {'text/x-python'}

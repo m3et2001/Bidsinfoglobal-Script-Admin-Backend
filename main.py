@@ -27,11 +27,14 @@ config = dotenv_values(".env")
 @app.on_event("startup")
 def startup_db_client():
     # app.mongodb_client = MongoClient("mongodb://localhost:27017")
-    app.mongodb_client = MongoClient("mongodb+srv://bidsinfoglobal:3N4ZRDaS6H64GajL@qa.t5cmca1.mongodb.net")
-    # app.mongodb_client = MongoClient(config["MONGODB_CONNECTION_URI"])
-    app.database = app.mongodb_client["script"]
+    # app.mongodb_client = MongoClient("mongodb+srv://bidsinfoglobal:3N4ZRDaS6H64GajL@qa.t5cmca1.mongodb.net")
+    MONGO_URI = config["MONGODB_CONNECTION_URI"]
+    DATABASE_NAME = config["DB_NAME"]
+    app.mongodb_client = MongoClient(MONGO_URI)
+    app.database = app.mongodb_client[DATABASE_NAME]
     print("Connected to the MongoDB database!")
- # Initialize scheduler in a separate thread
+
+    #Initialize scheduler in a separate thread
     print("[INFO] Initializing scheduled jobs in a separate thread...")
     thread = threading.Thread(target=initialize_schedules, args=(app.database,))
     thread.daemon = True  # Ensures thread exits when the main program terminates
