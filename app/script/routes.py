@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException, status,File,Query
 from typing import List
 from db import get_database
-from .crud import create_script, get_script, update_script, delete_script, list_scripts,get_scripts_by_developer,get_all_scheduled_scripts,LOGS_FOLDER,SCRIPTS_COLLECTION
-from .models import ScriptCreate, ScriptUpdate, ScriptInDB,ScriptType,ScheduledScript,ScheduledScriptInDB
+from .crud import create_script, get_script, update_script, delete_script, list_scripts,get_scripts_by_developer,get_all_scheduled_scripts,LOGS_FOLDER,SCRIPTS_COLLECTION,get_script_type,get_frequencies,add_big_refs_to_script
+from .models import ScriptCreate, ScriptUpdate, ScriptInDB,ScriptType,ScheduledScript,ScheduledScriptInDB,Frequency,AddBigRefData
 from .validators import validate_data
 from datetime import date,time,datetime
 from fastapi.responses import JSONResponse
@@ -39,6 +39,20 @@ def validate_file(file: UploadFile):
 
 
 router = APIRouter()
+
+@router.get("/frequencies", response_description="List all frequencies", response_model=List[str])
+def get_frequencie_list(user: str = Depends(get_current_user)):
+    return get_frequencies()
+
+@router.get("/script-type")
+def get_script_type_list(user: str = Depends(get_current_user)):
+    return get_script_type()
+
+@router.post("/add-big-refs")
+def add_big_refs(data:AddBigRefData,db=Depends(get_database),user: str = Depends(get_current_user)):
+    # print("sdfsdf",data.scrap_count)
+    return add_big_refs_to_script(db,data)
+
 @router.get("/scheduled-scripts", response_model=List[ScheduledScriptInDB])
 def api_get_all_scheduled_scripts(db=Depends(get_database),
                                     page: int = Query(1, ge=1, description="The page number to retrieve (1-based index)"),
@@ -62,6 +76,8 @@ def create_script_endpoint(
     bigref_no: list = Form(...),
     recent_logs: str = Form(None),
     script_type: ScriptType = Form(...),
+    frequency: Frequency = Form(...),
+    interval_days: Optional[int] = Form(None),
     file: UploadFile = File(...),
     user: str = Depends(get_current_user)
 
@@ -73,6 +89,8 @@ def create_script_endpoint(
     developer_id=developer_id,
     bigref_no=bigref_no,
     schedule_time=schedule_time,
+    interval_days=interval_days
+
 )
     script_data = ScriptCreate(
         script_name=script_name,
@@ -82,6 +100,8 @@ def create_script_endpoint(
         country=country,
         status=script_status,
         bigref_no=bigref_no,
+        frequency=frequency,
+        interval_days=interval_days,
         script_type=script_type,
         recent_logs=recent_logs
     )
@@ -112,18 +132,21 @@ def update_script_endpoint(
     schedule_time: Optional[str] = Form("09:23", example="09:23"), 
     country: Optional[str] = Form(None),
     script_status: Optional[bool] = Form(None),
-    bigref_no: Optional[list] = Form(None),
-    recent_logs: Optional[str] = Form(None),
+    # bigref_no: Optional[list] = Form(None),
+    # recent_logs: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     script_type: ScriptType = Form(...),
+    frequency: Frequency = Form(...),
+    interval_days: Optional[int] = Form(None),
     user: str = Depends(get_current_user)
     ):
     validate_data(
     file=file,
     development_date=development_date,
     developer_id=developer_id,
-    bigref_no=bigref_no,
+    # bigref_no=bigref_no,
     schedule_time=schedule_time,
+    interval_days=interval_days
 )
     script_update = ScriptUpdate(
         script_name=script_name,
@@ -132,9 +155,11 @@ def update_script_endpoint(
         schedule_time=datetime.strptime(schedule_time, "%H:%M"),
         country=country,
         status=script_status,
-        bigref_no=bigref_no,
+        # bigref_no=bigref_no,
+        frequency=frequency,
+        interval_days=interval_days,
         script_type=script_type,
-        recent_logs=recent_logs
+        # recent_logs=recent_logs
     )
     
     updated_script = update_script(db, script_id, script_update,file)
@@ -217,3 +242,4 @@ async def update_script_status( script_name:str,db=Depends(get_database), user: 
         raise HTTPException(
             status_code=500, detail=f"An error occurred: {e}"
         )
+    

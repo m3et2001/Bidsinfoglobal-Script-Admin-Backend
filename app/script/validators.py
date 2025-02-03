@@ -10,6 +10,7 @@ def validate_data(
     developer_id: Optional[str] = None,
     bigref_no: Optional[List[str]] = None,
     schedule_time: Optional[str] = None,
+    interval_days:Optional[int] = None
 ):
     """
     Consolidate all validations for the input data.
@@ -38,6 +39,10 @@ def validate_data(
     if developer_id:
         if not ObjectId.is_valid(developer_id):
             raise HTTPException(status_code=400, detail="Developer ID must be a valid 14-character MongoDB ObjectId")
+    # Validate the developer ID (if provided)
+    if interval_days:
+        if interval_days <1:
+            raise HTTPException(status_code=400, detail="For 'custom' frequency, custom_days must be provided and should be at least 1.")
 
     # Validate the bigref_no field (if provided)
     if bigref_no:

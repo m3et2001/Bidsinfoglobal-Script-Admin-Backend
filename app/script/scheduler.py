@@ -1,4 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
+
 from apscheduler.triggers.cron import CronTrigger
 # from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import  HTTPException
@@ -8,7 +9,7 @@ import subprocess
 from pymongo.database import Database
 from fastapi import HTTPException
 from threading import Thread
-from .models import ScheduledScriptInDB
+from .models import ScheduledScriptInDB,Frequency
 from db import get_database
 from datetime import datetime
 from pytz import timezone
@@ -47,16 +48,16 @@ def run_script(script_path):
         try:
             print(f"[INFO] Running script: {script_path}")
             # Local
-            # subprocess.run(
-            #     ["/Users/meetvelani/Desktop/codebase/bidsinfoglobal/ScriptAdmin/.venv/bin/python3", script_path],
-            #     check=True
-            # )
-
-            #server
             subprocess.run(
-                ["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path],
+                ["/Users/meetvelani/Desktop/codebase/bidsinfoglobal/ScriptAdmin/.venv/bin/python3", script_path],
                 check=True
             )
+
+            #server
+            # subprocess.run(
+            #     ["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path],
+            #     check=True
+            # )
             print(f"[INFO] Script {script_path} completed successfully.")
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Error occurred while running {script_path}: {e}")
@@ -105,9 +106,46 @@ def handle_script_error(script_path, error_message):
         print("[INFO] Error logged successfully to MongoDB.")
     except Exception as mongo_exception:
         print(f"[ERROR] Exception occurred while logging to MongoDB: {mongo_exception}")
+
+
+def get_cron_trigger(frequency: Frequency, hour: int, minute: int, custom_days: int = None):
+    """
+    Returns a CronTrigger based on the selected frequency.
+
+    Args:
+        frequency (Frequency): The scheduling frequency.
+        hour (int): The hour of execution.
+        minute (int): The minute of execution.
+        timezone (str): The timezone string.
+        custom_days (int, optional): Number of days for custom interval (only required if frequency is "custom").
+
+    Returns:
+        CronTrigger: An APScheduler CronTrigger object.
+    """
+    ist_timezone = timezone("Asia/Kolkata")
+
+
+
+
+    if frequency == Frequency.daily:
+        return CronTrigger(hour=hour, minute=minute, timezone=ist_timezone)
+
+    elif frequency == Frequency.weekly:
+        return CronTrigger(day_of_week="1", hour=hour, minute=minute, timezone=ist_timezone)  # Every Sunday
+
+    elif frequency == Frequency.monthly:
+        return CronTrigger(day="1", hour=hour, minute=minute, timezone=ist_timezone)  # 1st of every month
+
+    elif frequency == Frequency.custom:
+        if not custom_days or custom_days < 1:
+            raise ValueError("For 'custom' frequency, custom_days must be provided and should be at least 1.")
+        return CronTrigger(day=f"*/{custom_days}", hour=hour, minute=minute, timezone=ist_timezone)
+
+    else:
+        raise ValueError("Invalid frequency type.")
     
 
-def schedule_script(db: Database, script_id, script_name, script_path, schedule_time):
+def schedule_script(db: Database, script_id, script_name, script_path, schedule_time,frequency=None,custom_days=None):
     # return "ee"
     print(f"[INFO] Scheduling script: {script_path} at {schedule_time}")
     scheduler = get_scheduler()
@@ -148,7 +186,15 @@ def schedule_script(db: Database, script_id, script_name, script_path, schedule_
 
     ist_timezone = timezone("Asia/Kolkata")
     hour, minute = map(int, schedule_time_str.split(":"))
-    scheduler.add_job(run_script, CronTrigger(hour=hour, minute=minute,timezone=ist_timezone), args=[script_path], id=str(script_id))
+    if frequency:
+        if frequency == Frequency.one_time:
+
+            thread = threading.Thread(target=run_script,args=[script_path])
+            thread.start()  # Start the thread
+        else:
+            scheduler.add_job(run_script, get_cron_trigger(frequency,hour,minute,custom_days), args=[script_path], id=str(script_id))
+    else:
+        scheduler.add_job(run_script, CronTrigger(hour=hour, minute=minute,timezone=ist_timezone), args=[script_path], id=str(script_id))
     # scheduler.add_job(run_script, 'interval', seconds=30,args=[script_path],id=script_id)
  
 
@@ -212,13 +258,25 @@ def initialize_schedules( db: Database):
 
             if script["script_file_path"] and script["schedule_time"]:
                 try:
-                    schedule_script(
-                        db,
-                        script["script_id"],
-                        script["script_name"],
-                        script["script_file_path"],
-                        script["schedule_time"]
-                    )
+                    try:
+                        schedule_script(
+                            db,
+                            script["script_id"],
+                            script["script_name"],
+                            script["script_file_path"],
+                            script["schedule_time"],
+                            script["frequency"],
+                            script["interval_days"],
+                        )
+                    except:
+                        schedule_script(
+                            db,
+                            script["script_id"],
+                            script["script_name"],
+                            script["script_file_path"],
+                            script["schedule_time"],
+                         
+                        )
                     print(f"[INFO] Scheduled script: {script_obj.script_name}")
                 except Exception as e:
                     print(f"[ERROR] Failed to schedule script {script_obj.script_name}: {e}")

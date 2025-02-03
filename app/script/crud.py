@@ -1,7 +1,7 @@
 from typing import List, Optional
 from bson import ObjectId
 from pymongo.database import Database
-from .models import ScriptCreate, ScriptUpdate, ScriptInDB, ScheduledScript, ScheduledScriptInDB
+from .models import ScriptCreate, ScriptUpdate, ScriptInDB, ScheduledScript, ScheduledScriptInDB,Frequency,ScriptType
 from fastapi import UploadFile, HTTPException, status
 import os
 from ..developer.crud import DEVELOPERS_COLLECTION
@@ -90,7 +90,7 @@ def create_script(db: Database, script: ScriptCreate, file: UploadFile) -> JSONR
 
         # Schedule the script
         try:
-            schedule_script(db, str(result.inserted_id), script_dict["script_name"], file_path, script_dict["schedule_time"])
+            schedule_script(db, str(result.inserted_id), script_dict["script_name"], file_path, script_dict["schedule_time"],script_dict["frequency"],script_dict["interval_days"])
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -236,9 +236,9 @@ def update_script(db: Database, script_id: str, script_update: ScriptUpdate, fil
 
         result = db[SCRIPTS_COLLECTION].update_one({"_id": ObjectId(script_id)}, {"$set": update_data})
 
-        if file or script_update.script_name or script_update.schedule_time:
+        if file or script_update.script_name or script_update.schedule_time or script_update.frequency :
             try:
-                schedule_script(db, script_id, script_update.script_name, file_path, script_update.schedule_time)
+                schedule_script(db, script_id, script_update.script_name, file_path, script_update.schedule_time,script_update.frequency,script_update.interval_days)
             except ValueError as e:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         # if result.modified_count == 1 or file:
@@ -437,6 +437,92 @@ def get_all_scheduled_scripts(db: Database, limit: int = 10, page: int = 1) -> J
             content={
                 "status": "error",
                 "message": f"Error retrieving scheduled scripts: {e}",
+                "data": None,
+            },
+        )
+def get_frequencies() -> JSONResponse:
+    try:
+    
+        frequency_list= list(Frequency)
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "status": "success",
+                "message": "Frequency retrieved.",
+                "data": frequency_list
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": "error",
+                "message": f"Error retrieving Frequency: {e}",
+                "data": None,
+            },
+        )
+def get_script_type() -> JSONResponse:
+    try:
+    
+        script_type_list= list(ScriptType)
+        print("Sdfsdfsdf")
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "status": "success",
+                "message": "Script Type retrieved.",
+                "data": script_type_list
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": "error",
+                "message": f"Error retrieving Script Type: {e}",
+                "data": None,
+            },
+        )
+def add_big_refs_to_script(db: Database,data) -> JSONResponse:
+    try:
+        print("sdfdsfsdfdsf")
+    
+        existing_document = db[SCRIPTS_COLLECTION].find_one({"script_name": data.script_name})
+
+        print("Sdfsdfsdf",existing_document)
+        if existing_document:
+            current_big_ref_no = existing_document.get("big_ref_no", [])
+            print(current_big_ref_no)
+            updated_big_ref_no = list(set(current_big_ref_no + data.big_ref_no))
+
+            current_scrap_history = existing_document.get("scraped_data", [])
+            if not type(current_scrap_history) == list:
+                current_scrap_history=[]
+            print(current_scrap_history)
+            current_datetime = datetime.now()
+            current_scrap_history.append(
+                {"date": current_datetime, "scraped_count": data.scrap_count,"bigref_no":data.big_ref_no}
+            )
+           
+            update_result = db[SCRIPTS_COLLECTION].update_one(
+                {"script_name": data.script_name},
+                {"$set": {"bigref_no": updated_big_ref_no,"scraped_data":current_scrap_history}}
+            )
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "status": "success",
+                "message": "big_refs added.",
+                
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": "error",
+                "message": f"Error During big_refs  : {e}",
                 "data": None,
             },
         )
