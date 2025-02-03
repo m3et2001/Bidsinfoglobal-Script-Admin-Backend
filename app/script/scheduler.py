@@ -48,16 +48,16 @@ def run_script(script_path):
         try:
             print(f"[INFO] Running script: {script_path}")
             # Local
-            subprocess.run(
-                ["/Users/meetvelani/Desktop/codebase/bidsinfoglobal/ScriptAdmin/.venv/bin/python3", script_path],
-                check=True
-            )
-
-            #server
             # subprocess.run(
-            #     ["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path],
+            #     ["/Users/meetvelani/Desktop/codebase/bidsinfoglobal/ScriptAdmin/.venv/bin/python3", script_path],
             #     check=True
             # )
+
+            #server
+            subprocess.run(
+                ["/var/lib/jenkins/workspace/script-admin-backend/.venv/bin/python3", script_path],
+                check=True
+            )
             print(f"[INFO] Script {script_path} completed successfully.")
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Error occurred while running {script_path}: {e}")
